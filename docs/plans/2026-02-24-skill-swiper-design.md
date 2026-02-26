@@ -2,7 +2,7 @@
 
 **Datum:** 2026-02-24
 **Typ:** Android App (Flutter + Supabase)
-**Konzept:** Lokale Tauschwirtschaft für Fähigkeiten — "Skill-Tinder"
+**Konzept:** Globale und lokale Tauschwirtschaft für Fähigkeiten — "Skill-Tinder"
 
 ---
 
@@ -12,7 +12,7 @@ Skill Swiper bringt Menschen in der direkten Umgebung zusammen, die voneinander 
 
 **Kernprinzipien:**
 - **Entdecken statt Suchen:** Der Feed zeigt alle Nutzer im Umkreis — ungefiltert. Man entdeckt Skills, von denen man nicht wusste, dass man sie lernen will.
-- **Lokal & persönlich:** Nur Menschen in der Nähe werden angezeigt. Ziel ist die echte Begegnung, nicht nur digitaler Kontakt.
+- **Global, lokal & persönlich:** Nur Menschen in der Nähe werden angezeigt, ausser man wählt für seinen Skill 'remote' aus, dann werden auch Menschen angezeigt, die ebenfalls Skills mit Status 'remote' haben. Ziel ist die echte Begegnung, nicht nur digitaler Kontakt.
 - **Tauschwirtschaft ohne Geld:** Wissen wird getauscht, nicht verkauft.
 - **Einfachheit:** Nutzer geben nur an, was sie anbieten — kein kompliziertes Matching-Setup.
 
@@ -24,6 +24,7 @@ Skill Swiper bringt Menschen in der direkten Umgebung zusammen, die voneinander 
 - Menschen, die ihr Wissen gerne teilen und andere Leute kennenlernen wollen
 - Studenten, Berufstätige, Hobbyisten — jeder, der etwas kann und etwas Neues entdecken will
 - Lokal verankert: funktioniert am besten in Städten und dicht besiedelten Gebieten
+- aber auch globale Vernetzung. Skills können auch remote beigebracht werden
 
 ---
 
