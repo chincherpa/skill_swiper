@@ -154,7 +154,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _messages.isEmpty
-                    ? Center(
+                    ? const Center(
                         child: Text(
                           'Starte eine Konversation!',
                           style: TextStyle(color: AppColors.textSecondary),

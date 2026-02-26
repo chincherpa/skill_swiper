@@ -27,10 +27,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
     setState(() => _loading = true);
     try {
       final matches = await _service.getMatches();
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _matches = matches;
         _loading = false;
       });
+      }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }

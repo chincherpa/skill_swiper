@@ -6,7 +6,6 @@ build/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-pubspec.lock
 
 # IDE
 .idea/
@@ -36,3 +35,5 @@ Thumbs.db
 .env
 *.env
 .env.local
+
+.metadata

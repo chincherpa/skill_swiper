@@ -301,13 +301,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             size: 60, color: AppColors.textSecondary)
                         : null,
                   ),
-                  Positioned(
+                  const Positioned(
                     bottom: 0,
                     right: 0,
                     child: CircleAvatar(
                       radius: 16,
                       backgroundColor: AppColors.primary,
-                      child: const Icon(Icons.camera_alt,
+                      child: Icon(Icons.camera_alt,
                           size: 16, color: Colors.white),
                     ),
                   ),
@@ -386,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             Expanded(
               child: _skills.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text(
                         'Noch keine Skills hinzugefügt',
                         style: TextStyle(color: AppColors.textSecondary),

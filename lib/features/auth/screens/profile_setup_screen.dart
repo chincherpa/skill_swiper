@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,6 +36,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   bool _locationLoading = false;
   String? _locationLabel;
   int _radiusKm = 10;
+  final _cityController = TextEditingController();
+  bool _geocoding = false;
 
   // Step 3: Skills
   List<Skill> _skillCatalog = [];
@@ -52,6 +55,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _pageController.dispose();
     _nameController.dispose();
     _bioController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
@@ -114,6 +118,47 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       }
     } finally {
       if (mounted) setState(() => _locationLoading = false);
+    }
+  }
+
+  Future<void> _geocodeCity() async {
+    final query = _cityController.text.trim();
+    if (query.isEmpty) return;
+
+    setState(() => _geocoding = true);
+    try {
+      final locations = await locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        final loc = locations.first;
+        // Reverse geocode to get a readable name
+        final placemarks =
+            await placemarkFromCoordinates(loc.latitude, loc.longitude);
+        final label = placemarks.isNotEmpty
+            ? [placemarks.first.locality, placemarks.first.country]
+                .where((s) => s != null && s.isNotEmpty)
+                .join(', ')
+            : '${loc.latitude.toStringAsFixed(2)}°, ${loc.longitude.toStringAsFixed(2)}°';
+
+        setState(() {
+          _latitude = loc.latitude;
+          _longitude = loc.longitude;
+          _locationLabel = label;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ort konnte nicht gefunden werden')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler bei der Suche: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _geocoding = false);
     }
   }
 
@@ -448,10 +493,50 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.my_location),
-            label: Text(_locationLabel ?? 'Standort freigeben'),
+            label: const Text('Automatisch ermitteln'),
+          ),
+          const SizedBox(height: 16),
+          const Row(
+            children: [
+              Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('oder',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ),
+              Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _cityController,
+                  decoration: const InputDecoration(
+                    labelText: 'Stadt / Ort eingeben',
+                    hintText: 'z.B. Berlin, München...',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => _geocodeCity(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: _geocoding ? null : _geocodeCity,
+                icon: _geocoding
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_forward),
+              ),
+            ],
           ),
           if (_locationLabel != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -459,8 +544,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     color: AppColors.swipeRight, size: 18),
                 const SizedBox(width: 4),
                 Text(
-                  'Standort erfasst',
-                  style: TextStyle(
+                  _locationLabel!,
+                  style: const TextStyle(
                       color: AppColors.swipeRight,
                       fontWeight: FontWeight.w500),
                 ),
