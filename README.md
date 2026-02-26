@@ -1,100 +1,100 @@
 # Skill Swiper
 
-Eine Flutter-App für den lokalen und globalen Tausch von Fähigkeiten — **"Skill-Tinder"**.
+A Flutter app for local and global skill exchange — **"Skill-Tinder"**.
 
-Menschen in der Umgebung entdecken, die etwas beibringen können, und im Gegenzug eigenes Wissen teilen. Kein Geld, nur Wissen gegen Wissen.
+Discover people nearby who can teach you something, and share your own knowledge in return. No money, just knowledge for knowledge.
 
-## Konzept
+## Concept
 
-- **Swipen statt Suchen** — Ein Feed zeigt Nutzer im Umkreis mit ihren angebotenen Skills
-- **Lokal & Remote** — Treffe Leute in deiner Nähe oder vernetze dich global für Remote-Skills
-- **Tauschwirtschaft** — Wissen wird getauscht, nicht verkauft
-- **Match & Chat** — Gegenseitiges Interesse? Echtzeit-Chat zum Organisieren des Skill-Tauschs
+- **Swipe, don't search** — A feed shows nearby users with their offered skills
+- **Local & Remote** — Meet people in your area or connect globally for remote skills
+- **Barter economy** — Knowledge is exchanged, not sold
+- **Match & Chat** — Mutual interest? Real-time chat to organize the skill exchange
 
 ## Screenshots
 
 *Coming soon*
 
-## Tech-Stack
+## Tech Stack
 
-| Komponente | Technologie |
+| Component | Technology |
 |---|---|
 | Frontend | Flutter (Dart) |
 | Backend | Supabase |
 | Auth | Supabase Auth (Email + Google OAuth) |
-| Datenbank | PostgreSQL + PostGIS |
-| Echtzeit-Chat | Supabase Realtime |
-| Bild-Storage | Supabase Storage |
+| Database | PostgreSQL + PostGIS |
+| Real-time Chat | Supabase Realtime |
+| Image Storage | Supabase Storage |
 | State Management | Riverpod |
 | Routing | GoRouter |
-| Sicherheit | Row Level Security (RLS) |
+| Security | Row Level Security (RLS) |
 
-## Projektstruktur
+## Project Structure
 
 ```
 lib/
 ├── core/
-│   ├── constants/       # Supabase-Konfiguration
-│   ├── router/          # GoRouter-Setup, Splash Screen
-│   └── theme/           # Farben, App-Theme (Material Design 3)
+│   ├── constants/       # Supabase configuration
+│   ├── router/          # GoRouter setup, Splash Screen
+│   └── theme/           # Colors, App Theme (Material Design 3)
 ├── features/
-│   ├── auth/            # Login, Registrierung, Profil-Setup
-│   ├── chat/            # Echtzeit-Chat zwischen Matches
-│   ├── matches/         # Match-Übersicht
-│   ├── profile/         # Eigenes Profil anzeigen/bearbeiten
-│   └── swipe/           # Swipe-Feed mit Profilkarten
-├── models/              # Datenmodelle (Profile, Skill, Match, Message)
-├── services/            # Supabase-Service-Layer
-├── widgets/             # Gemeinsame Widgets (Shell-Scaffold)
+│   ├── auth/            # Login, Registration, Profile Setup
+│   ├── chat/            # Real-time chat between matches
+│   ├── matches/         # Match overview
+│   ├── profile/         # View/edit own profile
+│   └── swipe/           # Swipe feed with profile cards
+├── models/              # Data models (Profile, Skill, Match, Message)
+├── services/            # Supabase service layer
+├── widgets/             # Shared widgets (Shell Scaffold)
 └── main.dart
 ```
 
 ## Features
 
-- **Swipe-Feed** — Profilkarten mit Skills als Chips, Entfernungsanzeige, Swipe-Gesten
-- **Match-System** — Automatisches Match bei gegenseitigem Interesse (via Postgres-Funktion)
-- **Echtzeit-Chat** — Nachrichten über Supabase Realtime
-- **Standort-basiert** — GPS oder manuelle Eingabe, einstellbarer Umkreis (5–50 km)
-- **Profilverwaltung** — Profilbild, Bio, Skills hinzufügen/bearbeiten
-- **Auth** — Email/Passwort + Google OAuth
+- **Swipe Feed** — Profile cards with skill chips, distance display, swipe gestures
+- **Match System** — Automatic match on mutual interest (via Postgres function)
+- **Real-time Chat** — Messages via Supabase Realtime
+- **Location-based** — GPS or manual input, adjustable radius (5–50 km)
+- **Profile Management** — Profile picture, bio, add/edit skills
+- **Auth** — Email/Password + Google OAuth
 
-## Voraussetzungen
+## Prerequisites
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) >= 3.6.0
-- Ein [Supabase](https://supabase.com)-Projekt mit:
-  - PostGIS Extension aktiviert
-  - Tabellen: `profiles`, `skills`, `user_skills`, `swipes`, `matches`, `messages`
-  - Row Level Security Policies konfiguriert
-  - Storage Bucket `avatars` angelegt
+- A [Supabase](https://supabase.com) project with:
+  - PostGIS extension enabled
+  - Tables: `profiles`, `skills`, `user_skills`, `swipes`, `matches`, `messages`
+  - Row Level Security policies configured
+  - Storage bucket `avatars` created
 
 ## Setup
 
-1. **Repository klonen**
+1. **Clone the repository**
    ```bash
    git clone <repo-url>
    cd flutter_application_1
    ```
 
-2. **Dependencies installieren**
+2. **Install dependencies**
    ```bash
    flutter pub get
    ```
 
-3. **Supabase konfigurieren**
+3. **Configure Supabase**
 
-   Die Supabase-URL und den Anon-Key in `lib/core/constants/supabase_constants.dart` eintragen.
+   Add your Supabase URL and anon key in `lib/core/constants/supabase_constants.dart`.
 
-4. **Code-Generierung ausführen** (für Riverpod)
+4. **Run code generation** (for Riverpod)
    ```bash
    dart run build_runner build
    ```
 
-5. **App starten**
+5. **Start the app**
    ```bash
    flutter run
    ```
 
-## Datenmodell
+## Data Model
 
 ```
 profiles ──< user_skills >── skills
@@ -106,13 +106,13 @@ profiles ──< user_skills >── skills
     │       └──< messages
 ```
 
-- **profiles** — Nutzerdaten mit GPS-Standort (PostGIS)
-- **skills** — Globaler Skill-Katalog mit Kategorien
-- **user_skills** — Verknüpfung Nutzer ↔ Skill mit Beschreibung
-- **swipes** — Swipe-Aktionen (links/rechts)
-- **matches** — Automatisch erstellt bei gegenseitigem Right-Swipe
-- **messages** — Chat-Nachrichten innerhalb eines Matches
+- **profiles** — User data with GPS location (PostGIS)
+- **skills** — Global skill catalog with categories
+- **user_skills** — User ↔ Skill link with description
+- **swipes** — Swipe actions (left/right)
+- **matches** — Automatically created on mutual right-swipe
+- **messages** — Chat messages within a match
 
-## Lizenz
+## License
 
-Dieses Projekt ist nicht öffentlich lizenziert.
+This project is not publicly licensed.
