@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../models/profile.dart';
-import '../../../models/skill.dart';
 import '../../../models/user_skill.dart';
 import '../../../services/supabase_service.dart';
 
@@ -126,113 +125,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _addSkill() async {
-    List<Skill> catalog;
-    try {
-      catalog = await _service.getSkillCatalog();
-    } catch (_) {
-      return;
-    }
-
-    final existingIds = _skills.map((s) => s.skillId).toSet();
-    final available =
-        catalog.where((s) => !existingIds.contains(s.id)).toList();
-    if (available.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alle Skills bereits hinzugefügt')),
-        );
-      }
-      return;
-    }
-
     final descController = TextEditingController();
-    Skill? chosen;
+    bool isRemote = false;
 
-    final result = await showDialog<Map<String, String>>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final categories = <String, List<Skill>>{};
-          for (final s in available) {
-            categories.putIfAbsent(s.category, () => []).add(s);
-          }
-          final sortedCategories = categories.keys.toList()..sort();
-
           return AlertDialog(
             title: const Text('Skill hinzufügen'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (chosen == null)
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: sortedCategories.map((cat) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                child: Text(cat,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textSecondary,
-                                        fontSize: 13)),
-                              ),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: categories[cat]!.map((s) {
-                                  return ActionChip(
-                                    label: Text(s.name),
-                                    onPressed: () =>
-                                        setDialogState(() => chosen = s),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    )
-                  else ...[
-                    Chip(
-                      label: Text(chosen!.name),
-                      onDeleted: () =>
-                          setDialogState(() => chosen = null),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: descController,
-                      decoration: const InputDecoration(
-                        labelText: 'Beschreibung',
-                        hintText: 'z.B. Zeige dir in 2h die Basics...',
-                      ),
-                      maxLength: 200,
-                      maxLines: 2,
-                    ),
-                  ],
-                ],
-              ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(
+                    labelText: 'Was kannst du beibringen?',
+                    hintText: 'z.B. Ich bringe dir Gitarre spielen bei',
+                  ),
+                  maxLength: 200,
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  value: isRemote,
+                  onChanged: (value) {
+                    setDialogState(() => isRemote = value ?? false);
+                  },
+                  title: const Text('Remote möglich'),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Abbrechen'),
               ),
-              if (chosen != null)
-                ElevatedButton(
-                  onPressed: descController.text.trim().isNotEmpty
-                      ? () => Navigator.pop(ctx, {
-                            'skillId': chosen!.id,
-                            'description': descController.text.trim(),
-                          })
-                      : null,
-                  child: const Text('Hinzufügen'),
-                ),
+              ElevatedButton(
+                onPressed: () {
+                  if (descController.text.trim().isNotEmpty) {
+                    Navigator.pop(ctx, {
+                      'description': descController.text.trim(),
+                      'isRemote': isRemote,
+                    });
+                  }
+                },
+                child: const Text('Hinzufügen'),
+              ),
             ],
           );
         },
@@ -242,8 +183,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (result != null) {
       try {
         await _service.addUserSkill(
-          skillId: result['skillId']!,
-          description: result['description']!,
+          description: result['description'] as String,
+          isRemote: result['isRemote'] as bool,
         );
         await _loadProfile();
       } catch (e) {
@@ -398,8 +339,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final skill = _skills[index];
                         return Card(
                           child: ListTile(
-                            title: Text(skill.skillName ?? 'Skill'),
-                            subtitle: Text(skill.description),
+                            title: Text(skill.description),
+                            subtitle: skill.isRemote
+                                ? const Text('Remote möglich')
+                                : null,
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline),
                               onPressed: () => _removeSkill(skill),

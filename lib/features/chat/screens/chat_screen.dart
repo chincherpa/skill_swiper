@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,24 +25,85 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Message> _messages = [];
   bool _loading = true;
   RealtimeChannel? _channel;
+  RealtimeChannel? _presenceChannel;
   String? _partnerName;
   String? _partnerAvatarUrl;
+  bool _partnerIsTyping = false;
+  Timer? _typingTimer;
 
   @override
   void initState() {
     super.initState();
-    _messageController.addListener(() => setState(() {}));
+    _messageController.addListener(_onTextChanged);
     _loadMessages();
     _loadPartnerInfo();
     _subscribeToMessages();
+    _markAsRead();
   }
 
   @override
   void dispose() {
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
     _channel?.unsubscribe();
+    _presenceChannel?.unsubscribe();
+    _typingTimer?.cancel();
     super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+    if (_messageController.text.trim().isNotEmpty) {
+      _sendTypingIndicator();
+    }
+  }
+
+  void _sendTypingIndicator() {
+    _presenceChannel?.track({'typing': true});
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      _presenceChannel?.untrack();
+    });
+  }
+
+  void _setupPresence() {
+    final currentUserId = _service.currentUserId;
+    if (currentUserId == null) return;
+
+    _presenceChannel = Supabase.instance.client
+        .channel('typing:${widget.matchId}')
+        .onPresenceSync((payload) {
+      if (!mounted) return;
+      final presences = _presenceChannel?.presenceState() ?? [];
+
+      bool typing = false;
+      for (final state in presences) {
+        for (final presence in state.presences) {
+          if (presence.payload['user_id'] != currentUserId &&
+              presence.payload['typing'] == true) {
+            typing = true;
+          }
+        }
+      }
+      if (_partnerIsTyping != typing) {
+        setState(() => _partnerIsTyping = typing);
+      }
+    })
+        .subscribe((status, [error]) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        _presenceChannel?.track({
+          'user_id': currentUserId,
+          'typing': false,
+        });
+      }
+    });
+  }
+
+  Future<void> _markAsRead() async {
+    try {
+      await _service.markMessagesAsRead(widget.matchId);
+    } catch (_) {}
   }
 
   Future<void> _loadPartnerInfo() async {
@@ -55,6 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _partnerName = match!.otherUser!.name;
           _partnerAvatarUrl = match.otherUser!.avatarUrl;
         });
+        _setupPresence();
       }
     } catch (_) {}
   }
@@ -78,10 +142,13 @@ class _ChatScreenState extends State<ChatScreen> {
     _channel = _service.subscribeToMessages(
       widget.matchId,
       (message) {
-        // Avoid duplicates
         if (_messages.any((m) => m.id == message.id)) return;
         setState(() => _messages.add(message));
         _scrollToBottom();
+        // Mark incoming messages as read immediately
+        if (message.senderId != _service.currentUserId) {
+          _markAsRead();
+        }
       },
     );
   }
@@ -103,6 +170,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
 
     _messageController.clear();
+    _presenceChannel?.untrack();
+    _typingTimer?.cancel();
 
     try {
       await _service.sendMessage(
@@ -116,6 +185,26 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     }
+  }
+
+  bool _shouldShowDateSeparator(int index) {
+    if (index == 0) return true;
+    final current = _messages[index].createdAt;
+    final previous = _messages[index - 1].createdAt;
+    return current.year != previous.year ||
+        current.month != previous.month ||
+        current.day != previous.day;
+  }
+
+  String _formatDateSeparator(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDay = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(messageDay).inDays;
+
+    if (diff == 0) return 'Heute';
+    if (diff == 1) return 'Gestern';
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
   @override
@@ -143,7 +232,24 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Icon(Icons.person, size: 18),
                 ),
               ),
-            Text(_partnerName ?? 'Chat'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _partnerName ?? 'Chat',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                if (_partnerIsTyping)
+                  const Text(
+                    'tippt...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -167,7 +273,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, index) {
                           final msg = _messages[index];
                           final isOwn = msg.senderId == currentUserId;
-                          return _buildMessageBubble(msg, isOwn);
+                          return Column(
+                            children: [
+                              if (_shouldShowDateSeparator(index))
+                                _buildDateSeparator(msg.createdAt),
+                              _buildMessageBubble(msg, isOwn),
+                            ],
+                          );
                         },
                       ),
           ),
@@ -225,6 +337,29 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget _buildDateSeparator(DateTime date) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          const Expanded(child: Divider()),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              _formatDateSeparator(date),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const Expanded(child: Divider()),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(Message msg, bool isOwn) {
     return Align(
       alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
@@ -254,14 +389,29 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              '${msg.createdAt.hour.toString().padLeft(2, '0')}:${msg.createdAt.minute.toString().padLeft(2, '0')}',
-              style: TextStyle(
-                color: isOwn
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : AppColors.textSecondary,
-                fontSize: 11,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${msg.createdAt.hour.toString().padLeft(2, '0')}:${msg.createdAt.minute.toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    color: isOwn
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+                if (isOwn) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    msg.readAt != null ? Icons.done_all : Icons.done,
+                    size: 14,
+                    color: msg.readAt != null
+                        ? Colors.lightBlueAccent
+                        : Colors.white.withValues(alpha: 0.7),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

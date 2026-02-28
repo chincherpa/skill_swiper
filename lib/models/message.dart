@@ -4,6 +4,7 @@ class Message {
   final String senderId;
   final String content;
   final DateTime createdAt;
+  final DateTime? readAt;
 
   const Message({
     required this.id,
@@ -11,6 +12,7 @@ class Message {
     required this.senderId,
     required this.content,
     required this.createdAt,
+    this.readAt,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,9 @@ class Message {
       senderId: json['sender_id'] as String,
       content: json['content'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      readAt: json['read_at'] != null
+          ? DateTime.parse(json['read_at'] as String)
+          : null,
     );
   }
 

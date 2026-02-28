@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../models/match.dart';
@@ -16,11 +17,25 @@ class _MatchesScreenState extends State<MatchesScreen> {
   final _service = SupabaseService();
   List<Match>? _matches;
   bool _loading = true;
+  RealtimeChannel? _messageChannel;
 
   @override
   void initState() {
     super.initState();
     _loadMatches();
+    _subscribeToMessages();
+  }
+
+  @override
+  void dispose() {
+    _messageChannel?.unsubscribe();
+    super.dispose();
+  }
+
+  void _subscribeToMessages() {
+    _messageChannel = _service.subscribeToAllMessages(() {
+      _loadMatches();
+    });
   }
 
   Future<void> _loadMatches() async {
@@ -102,7 +117,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 final match = newMatches[index];
                 final other = match.otherUser;
                 return GestureDetector(
-                  onTap: () => context.go('/chat/${match.id}'),
+                  onTap: () => context.push('/chat/${match.id}'),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Column(
@@ -159,6 +174,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
         else
           ...chats.map((match) {
             final other = match.otherUser;
+            final hasUnread = match.unreadCount > 0;
             return ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.background,
@@ -169,22 +185,59 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(other?.name ?? 'User'),
+              title: Text(
+                other?.name ?? 'User',
+                style: hasUnread
+                    ? const TextStyle(fontWeight: FontWeight.bold)
+                    : null,
+              ),
               subtitle: Text(
                 match.lastMessage ?? '',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: hasUnread
+                    ? const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      )
+                    : null,
               ),
-              trailing: match.lastMessageAt != null
-                  ? Text(
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (match.lastMessageAt != null)
+                    Text(
                       _formatTime(match.lastMessageAt!),
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
-                    )
-                  : null,
-              onTap: () => context.go('/chat/${match.id}'),
+                    ),
+                  if (hasUnread) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${match.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              onTap: () => context.push('/chat/${match.id}'),
             );
           }),
       ],

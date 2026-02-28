@@ -76,58 +76,35 @@ class SwipeCard extends StatelessWidget {
                     ),
                   const SizedBox(height: 12),
 
-                  // Skill chips
+                  // Skills
                   Expanded(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      physics: const NeverScrollableScrollPhysics(),
+                      clipBehavior: Clip.hardEdge,
                       children: data.skills.map((skill) {
-                        return GestureDetector(
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (_) => Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      skill.skillName ?? 'Skill',
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (skill.skillCategory != null) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        skill.skillCategory!,
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      skill.description,
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  skill.description,
+                                  style: const TextStyle(fontSize: 14),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            );
-                          },
-                          child: Chip(
-                            label: Text(
-                              skill.skillName ?? 'Skill',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
+                              if (skill.isRemote)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 6),
+                                  child: Icon(
+                                    Icons.videocam_outlined,
+                                    size: 16,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                            ],
                           ),
                         );
                       }).toList(),

@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/match.dart';
 import '../models/message.dart';
 import '../models/profile.dart';
-import '../models/skill.dart';
 import '../models/swipe_card_data.dart';
 import '../models/user_skill.dart';
 
@@ -16,8 +15,10 @@ class SupabaseService {
 
   // ── Auth ──────────────────────────────────────────────
 
-  Future<void> signUp({required String email, required String password}) async {
-    await _client.auth.signUp(email: email, password: password);
+  /// Returns `true` if the session is immediately active (no email confirmation needed).
+  Future<bool> signUp({required String email, required String password}) async {
+    final response = await _client.auth.signUp(email: email, password: password);
+    return response.session != null;
   }
 
   Future<void> signIn({required String email, required String password}) async {
@@ -57,28 +58,22 @@ class SupabaseService {
 
   // ── Skills ────────────────────────────────────────────
 
-  Future<List<Skill>> getSkillCatalog() async {
-    final data =
-        await _client.from('skills').select().order('category').order('name');
-    return data.map((json) => Skill.fromJson(json)).toList();
-  }
-
   Future<List<UserSkill>> getUserSkills(String userId) async {
     final data = await _client
         .from('user_skills')
-        .select('*, skills(name, category)')
+        .select()
         .eq('user_id', userId);
     return data.map((json) => UserSkill.fromJson(json)).toList();
   }
 
   Future<void> addUserSkill({
-    required String skillId,
     required String description,
+    bool isRemote = false,
   }) async {
     await _client.from('user_skills').insert({
       'user_id': currentUserId,
-      'skill_id': skillId,
       'description': description,
+      'is_remote': isRemote,
     });
   }
 
@@ -168,6 +163,32 @@ class SupabaseService {
           callback: (payload) {
             onMessage(Message.fromJson(payload.newRecord));
           },
+        )
+        .subscribe();
+  }
+
+  Future<void> markMessagesAsRead(String matchId) async {
+    await _client.rpc('mark_messages_read', params: {
+      'p_match_id': matchId,
+      'p_user_id': currentUserId,
+    });
+  }
+
+  Future<int> getTotalUnreadCount() async {
+    final result = await _client.rpc('get_total_unread_count', params: {
+      'current_user_id': currentUserId,
+    });
+    return (result as int?) ?? 0;
+  }
+
+  RealtimeChannel subscribeToAllMessages(void Function() onNewMessage) {
+    return _client
+        .channel('all_messages')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          callback: (_) => onNewMessage(),
         )
         .subscribe();
   }

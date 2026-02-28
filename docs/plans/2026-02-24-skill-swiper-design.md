@@ -1,4 +1,4 @@
-# Skill Swiper - Design Dokument
+# Quid - Design Dokument
 
 **Datum:** 2026-02-24
 **Typ:** Android App (Flutter + Supabase)
@@ -8,7 +8,7 @@
 
 ## 1. Vision & Kernkonzept
 
-Skill Swiper bringt Menschen in der direkten Umgebung zusammen, die voneinander lernen wollen. Nutzer bieten Fähigkeiten an ("Ich zeige dir in 2h die React-Basics") und entdecken durch Swipen, was andere Menschen in ihrer Nähe beibringen können.
+Quid bringt Menschen in der direkten Umgebung zusammen, die voneinander lernen wollen. Nutzer bieten Fähigkeiten an ("Ich zeige dir in 2h die React-Basics") und entdecken durch Swipen, was andere Menschen in ihrer Nähe beibringen können.
 
 **Kernprinzipien:**
 - **Entdecken statt Suchen:** Der Feed zeigt alle Nutzer im Umkreis — ungefiltert. Man entdeckt Skills, von denen man nicht wusste, dass man sie lernen will.
@@ -63,7 +63,7 @@ Erweitert die Supabase `auth.users` Tabelle mit App-spezifischen Daten.
 **Hinweise:**
 - `location` wird als PostGIS `geography(Point, 4326)` gespeichert (WGS84-Koordinatensystem)
 - Der Nutzer kann den Standort per GPS freigeben oder manuell eine Stadt/PLZ eingeben
-- `radius_km` ist einstellbar im Profil (Optionen: 5, 10, 25, 50 km)
+- `radius_km` ist einstellbar im Profil (Optionen: 5, 10, 25, 50, 100 km)
 
 ### 4.2 `skills`
 
@@ -165,7 +165,7 @@ Chat-Nachrichten zwischen gematchten Nutzern.
 
 ### 5.1 Splash Screen
 
-- App-Logo "Skill Swiper" mit kurzer Animation
+- App-Logo "Quid" mit kurzer Animation
 - Automatischer Auth-Check: Ist der Nutzer eingeloggt?
   - **Ja** → Weiter zum Swipe-Screen
   - **Nein** → Weiter zum Login-Screen

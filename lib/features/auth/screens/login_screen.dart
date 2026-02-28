@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Skill Swiper',
+                  'Quid',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,

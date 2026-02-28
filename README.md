@@ -1,4 +1,4 @@
-# Skill Swiper
+# Quid
 
 A Flutter app for local and global skill exchange — **"Skill-Tinder"**.
 
@@ -72,7 +72,7 @@ lib/
 1. **Clone the repository**
    ```bash
    git clone <repo-url>
-   cd flutter_application_1
+   cd Quid
    ```
 
 2. **Install dependencies**

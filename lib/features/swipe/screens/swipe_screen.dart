@@ -132,7 +132,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.go('/chat/$matchId');
+              context.push('/chat/$matchId');
             },
             child: const Text('Nachricht senden'),
           ),
@@ -145,7 +145,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Skill Swiper'),
+        title: const Text('Quid'),
       ),
       body: _buildBody(),
     );

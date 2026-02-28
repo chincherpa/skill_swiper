@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../models/skill.dart';
 import '../../../services/supabase_service.dart';
 import '../../../models/profile.dart';
 
@@ -39,15 +38,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _cityController = TextEditingController();
   bool _geocoding = false;
 
-  // Step 3: Skills
-  List<Skill> _skillCatalog = [];
-  final List<_SelectedSkill> _selectedSkills = [];
+  // Step 3: Skill
+  final _skillDescriptionController = TextEditingController();
+  bool _isRemote = false;
 
   @override
   void initState() {
     super.initState();
     _nameController.addListener(() => setState(() {}));
-    _loadSkillCatalog();
+    _skillDescriptionController.addListener(() => setState(() {}));
   }
 
   @override
@@ -56,16 +55,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _nameController.dispose();
     _bioController.dispose();
     _cityController.dispose();
+    _skillDescriptionController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadSkillCatalog() async {
-    try {
-      final catalog = await _service.getSkillCatalog();
-      setState(() => _skillCatalog = catalog);
-    } catch (e) {
-      // Will retry when user reaches step 3
-    }
   }
 
   Future<void> _pickImage() async {
@@ -185,17 +176,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (_selectedSkills.isEmpty) {
+    final skillDesc = _skillDescriptionController.text.trim();
+    if (skillDesc.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Füge mindestens einen Skill hinzu')),
+            content: Text('Beschreibe, was du beibringen kannst')),
       );
       return;
     }
 
     setState(() => _saving = true);
     try {
-      final userId = _service.currentUserId!;
+      final userId = _service.currentUserId;
+      if (userId == null) {
+        throw Exception('Nicht angemeldet. Bitte erneut einloggen.');
+      }
 
       // Upload avatar if selected
       if (_avatarBytes != null) {
@@ -218,13 +213,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         updatedAt: now,
       ));
 
-      // Save skills
-      for (final skill in _selectedSkills) {
-        await _service.addUserSkill(
-          skillId: skill.skill.id,
-          description: skill.description,
-        );
-      }
+      // Save skill
+      await _service.addUserSkill(
+        description: skillDesc,
+        isRemote: _isRemote,
+      );
 
       if (mounted) context.go('/swipe');
     } catch (e) {
@@ -235,144 +228,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       }
     } finally {
       if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _showSkillPickerDialog() async {
-    if (_skillCatalog.isEmpty) {
-      await _loadSkillCatalog();
-      if (_skillCatalog.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Skill-Katalog konnte nicht geladen werden')),
-          );
-        }
-        return;
-      }
-    }
-
-    // Filter out already selected skills
-    final selectedIds = _selectedSkills.map((s) => s.skill.id).toSet();
-    final available =
-        _skillCatalog.where((s) => !selectedIds.contains(s.id)).toList();
-
-    if (available.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alle verfügbaren Skills bereits hinzugefügt')),
-        );
-      }
-      return;
-    }
-
-    final descController = TextEditingController();
-    Skill? chosen;
-
-    final result = await showDialog<_SelectedSkill>(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            // Group by category
-            final categories = <String, List<Skill>>{};
-            for (final s in available) {
-              categories.putIfAbsent(s.category, () => []).add(s);
-            }
-            final sortedCategories = categories.keys.toList()..sort();
-
-            return AlertDialog(
-              title: const Text('Skill hinzufügen'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (chosen == null)
-                      Flexible(
-                        child: ListView(
-                          shrinkWrap: true,
-                          children: sortedCategories.map((category) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(
-                                    category,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textSecondary,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  children:
-                                      categories[category]!.map((skill) {
-                                    return ActionChip(
-                                      label: Text(skill.name),
-                                      onPressed: () {
-                                        setDialogState(
-                                            () => chosen = skill);
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            );
-                          }).toList(),
-                        ),
-                      )
-                    else ...[
-                      Chip(
-                        label: Text(chosen!.name),
-                        onDeleted: () =>
-                            setDialogState(() => chosen = null),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: descController,
-                        decoration: const InputDecoration(
-                          labelText: 'Beschreibung',
-                          hintText:
-                              'z.B. Zeige dir in 2 Stunden die Basics...',
-                        ),
-                        maxLength: 200,
-                        maxLines: 2,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Abbrechen'),
-                ),
-                if (chosen != null)
-                  ElevatedButton(
-                    onPressed: descController.text.trim().isNotEmpty
-                        ? () => Navigator.pop(
-                            ctx,
-                            _SelectedSkill(
-                              skill: chosen!,
-                              description: descController.text.trim(),
-                            ))
-                        : null,
-                    child: const Text('Hinzufügen'),
-                  ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (result != null) {
-      setState(() => _selectedSkills.add(result));
     }
   }
 
@@ -595,7 +450,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'Deine Skills',
+            'Dein Skill',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -604,55 +459,36 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
-          Expanded(
-            child: _selectedSkills.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          size: 64,
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Füge mindestens einen Skill hinzu',
-                          style:
-                              TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _selectedSkills.length,
-                    itemBuilder: (context, index) {
-                      final s = _selectedSkills[index];
-                      return Card(
-                        child: ListTile(
-                          title: Text(s.skill.name),
-                          subtitle: Text(s.description),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () {
-                              setState(
-                                  () => _selectedSkills.removeAt(index));
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          if (_selectedSkills.length < 10)
-            OutlinedButton.icon(
-              onPressed: _showSkillPickerDialog,
-              icon: const Icon(Icons.add),
-              label: const Text('Skill hinzufügen'),
+          TextFormField(
+            controller: _skillDescriptionController,
+            decoration: const InputDecoration(
+              labelText: 'Beschreibe deinen Skill',
+              hintText: 'z.B. Ich bringe dir Gitarre spielen bei',
             ),
+            maxLength: 200,
+            maxLines: 2,
+          ),
           const SizedBox(height: 16),
+          CheckboxListTile(
+            value: _isRemote,
+            onChanged: (value) {
+              setState(() => _isRemote = value ?? false);
+            },
+            title: const Text('Kann remote beigebracht werden'),
+            subtitle: const Text(
+              'z.B. per Videocall',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const Spacer(),
           ElevatedButton(
-            onPressed: _saving ? null : _nextStep,
+            onPressed: _saving
+                ? null
+                : (_skillDescriptionController.text.trim().isNotEmpty
+                    ? _nextStep
+                    : null),
             child: _saving
                 ? const SizedBox(
                     width: 20,
@@ -665,11 +501,4 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
     );
   }
-}
-
-class _SelectedSkill {
-  final Skill skill;
-  final String description;
-
-  const _SelectedSkill({required this.skill, required this.description});
 }

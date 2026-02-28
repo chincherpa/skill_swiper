@@ -31,11 +31,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _loading = true);
     try {
-      await _service.signUp(
+      final hasSession = await _service.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      if (mounted) context.go('/profile-setup');
+      if (!mounted) return;
+      if (hasSession) {
+        context.go('/profile-setup');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Bestätigungslink wurde per E-Mail gesendet. '
+              'Bitte bestätige deine E-Mail und melde dich dann an.',
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
+        context.go('/login');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

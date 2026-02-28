@@ -25,7 +25,7 @@ class SkillSwiperApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'Skill Swiper',
+      title: 'Quid',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
